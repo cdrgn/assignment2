@@ -1,7 +1,7 @@
 
 // require("./utils.js");
 
-require('dotenv').config(); // reads .env and populates process.env
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
@@ -49,7 +49,6 @@ app.use(session({
 ));
 
 app.get('/', (req,res) => {
-    // res.send("<h1>Hello World!</h1>");
     if (req.session.authenticated) {
         res.send(`
             <body>
@@ -151,8 +150,6 @@ app.get('/nosql-injection', async (req,res) => {
 //     }
 // });
 
-
-// app.get('/createUser', (req,res) => {
 app.get('/signup', (req,res) => {    
     var html = `
     create user
@@ -165,7 +162,6 @@ app.get('/signup', (req,res) => {
     `;
     res.send(html);
 });
-
 
 app.get('/login', (req,res) => {
     var html = `
@@ -187,45 +183,18 @@ app.post('/signupSubmit', async (req,res) => {
 	const schema = Joi.object(
 		{
             name: Joi.string().max(20).required(),
-			// email: Joi.string().alphanum().max(20).required(),
             email: Joi.string().email().required(),
 			password: Joi.string().max(20).required()
 		});
 	
-	// const validationResult = schema.validate({name, username, password});
-	// if (validationResult.error != null) {
-
-	//    console.log(validationResult.error);
-	//    res.redirect("/createUser");
-        // res.redirect("/signup");
-	//    return;
-
     const validationResult = schema.validate({name, email, password}, {abortEarly: false});
-    // if (validationResult.error != null) {
-    //     // collect all missing/empty field names
-    //     const fields = validationResult.error.details.map(d => d.context.key);
-    //     const unique = Array.from(new Set(fields));
-        
-    //     // build "X is required." for each
-    //     const msgs = unique
-    //         .map(f => `${f} is required.`)
-    //         .join(' ');
-        
-    //     return res.send(`
-    //         <p>${msgs}</p>
-    //         <a href="/signup">Try again</a>
-    //     `);
-    // }
+    
     if (validationResult.error) {
-
-        // get unique fields violated
         const missingFields = Array.from(
             new Set(validationResult.error.details.map(e => e.context.key))
         );
 
-        // add ", " between each field and append to " required."
         const message = `${missingFields.join(', ')} required.`;
-
         const formatMessage = message[0].toUpperCase() + message.slice(1);
 
         return res.send(`
@@ -236,40 +205,33 @@ app.post('/signupSubmit', async (req,res) => {
 
     var hashedPassword = await bcrypt.hash(password, saltRounds);
 	
-	// await userCollection.insertOne({username: username, password: hashedPassword});
     await userCollection.insertOne({name: name, email: email, password: hashedPassword});
 	console.log("Inserted user");
+    req.session.authenticated = true; 
+    req.session.name = name; 
+    req.session.email = email; 
+	req.session.cookie.maxAge = expireTime;
 
-    req.session.authenticated = true; //ADDED
-    req.session.name = name; //ADDED
-    req.session.email = email; //ADDED
-		req.session.cookie.maxAge = expireTime; //ADDED
-    // var html = "successfully created user";
-    // res.send(html);
     res.redirect('/');
 });
 
 app.post('/loginSubmit', async (req,res) => {
-    // var name = req.body.name; //ADDED
     var email = req.body.email;
     var password = req.body.password;
 
 	const schema = Joi.string().max(20).required();
 	const validationResult = schema.validate(email);
 	if (validationResult.error != null) {
-	   console.log(validationResult.error);
-	//    res.redirect("/login"); 
-	//    return;
+        console.log(validationResult.error);
         return res.send(`
             <p>Invalid email/password combination.</p>
             <a href="/login">Try again</a>
         `);
 	}
 
-	// const result = await userCollection.find({username: username}).project({username: 1, password: 1, _id: 1}).toArray();
     const result = await userCollection.find({email: email}).project({email: 1, password: 1, _id: 1, name: 1}).toArray();
 
-	console.log(result);
+	// console.log(result);
 	if (result.length != 1) {
 		console.log("user not found");
 		res.redirect("/login");
@@ -278,11 +240,10 @@ app.post('/loginSubmit', async (req,res) => {
 	if (await bcrypt.compare(password, result[0].password)) {
 		console.log("correct password");
 		req.session.authenticated = true;
-        req.session.name = result[0].name; //ADDED
+        req.session.name = result[0].name;
 		req.session.email = email;
 		req.session.cookie.maxAge = expireTime;
 
-		// res.redirect('/loggedIn');
         res.redirect('/');
 		return;
 	}
@@ -292,16 +253,6 @@ app.post('/loginSubmit', async (req,res) => {
 		return;
 	}
 });
-
-// app.get('/loggedin', (req,res) => {
-//     if (!req.session.authenticated) {
-//         res.redirect('/login');
-//     }
-//     var html = `
-//     You are logged in!
-//     `;
-//     res.send(html);
-// });
 
 app.get('/members', (req,res) => {
     if (req.session.authenticated) {
@@ -317,7 +268,7 @@ app.get('/members', (req,res) => {
                         window.location.href = "/logout"
                 });
     
-                const id = Math.floor(Math.random() * 3) + 1; // 1 to 3
+                const id = Math.floor(Math.random() * 3) + 1;
     
                 fetch('/cat/' + id)
                     .then(r => r.text())
@@ -333,15 +284,10 @@ app.get('/members', (req,res) => {
 
 app.get('/logout', (req,res) => {
 	req.session.destroy();
-    // var html = `
-    // You are logged out.
-    // `;
-    // res.send(html);
     res.redirect('/');
 });
 
 
-//TODO
 app.get('/cat/:id', (req,res) => {
 
     var cat = req.params.id;
@@ -353,7 +299,7 @@ app.get('/cat/:id', (req,res) => {
         res.send("<img src='/socks.gif' style='width:250px;'>");
     }
     else if (cat == 3) {
-        res.send("<img src='/googlecat.jpg' style='width:250px;'>")
+        res.send("<img src='/googlecat.jpg' style='width:250px;'>");
     }
     else {
         res.send("Invalid cat id: "+cat);
@@ -363,7 +309,6 @@ app.get('/cat/:id', (req,res) => {
 
 app.use(express.static(__dirname + "/public"));
 
-// app.get("*", (req,res) => {
 app.get(/.*/, (req,res) => {    
 	res.status(404);
 	res.send("Page not found - 404");
