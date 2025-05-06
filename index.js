@@ -259,7 +259,7 @@ app.get('/members', (req,res) => {
         return res.send(`
             <body>
                 <h1>Hello, ${req.session.name}.</h1>
-                <div id="randomCat"></div>
+                <div id="randomImg"></div>
                 <button id="signout">Sign out</button>
             </body>
             <script>
@@ -270,10 +270,10 @@ app.get('/members', (req,res) => {
     
                 const id = Math.floor(Math.random() * 3) + 1;
     
-                fetch('/cat/' + id)
+                fetch('/img/' + id)
                     .then(r => r.text())
                     .then(html => {
-                        document.getElementById('randomCat').innerHTML = html;
+                        document.getElementById('randomImg').innerHTML = html;
                 });
             </script>            
         `);
@@ -288,21 +288,21 @@ app.get('/logout', (req,res) => {
 });
 
 
-app.get('/cat/:id', (req,res) => {
+app.get('/img/:id', (req,res) => {
 
-    var cat = req.params.id;
+    var image = req.params.id;
 
-    if (cat == 1) {
-        res.send("<img src='/fluffy.gif' style='width:250px;'>");
+    if (image == 1) {
+        res.send("<img src='/aussie.jpg' style='width:250px;'>");
     }
-    else if (cat == 2) {
-        res.send("<img src='/socks.gif' style='width:250px;'>");
+    else if (image == 2) {
+        res.send("<img src='/daschund.jpg' style='width:250px;'>");
     }
-    else if (cat == 3) {
-        res.send("<img src='/googlecat.jpg' style='width:250px;'>");
+    else if (image == 3) {
+        res.send("<img src='/husky.jpg' style='width:250px;'>");
     }
     else {
-        res.send("Invalid cat id: "+cat);
+        res.send("Invalid img id: " + image);
     }
 });
 
