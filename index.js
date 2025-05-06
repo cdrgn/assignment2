@@ -234,8 +234,10 @@ app.post('/loginSubmit', async (req,res) => {
 	// console.log(result);
 	if (result.length != 1) {
 		console.log("user not found");
-		res.redirect("/login");
-		return;
+		return res.send(`
+            <p>Invalid email/password combination.</p>
+            <a href="/login">Try again</a>
+        `);
 	}
 	if (await bcrypt.compare(password, result[0].password)) {
 		console.log("correct password");
@@ -249,8 +251,10 @@ app.post('/loginSubmit', async (req,res) => {
 	}
 	else {
 		console.log("incorrect password");
-		res.redirect("/login");
-		return;
+		return res.send(`
+            <p>Invalid email/password combination.</p>
+            <a href="/login">Try again</a>
+        `);
 	}
 });
 
@@ -315,5 +319,5 @@ app.get(/.*/, (req,res) => {
 })
 
 app.listen(port, () => {
-	console.log("Node application listening on port "+port);
+	console.log("Node application listening on port " + port);
 }); 
