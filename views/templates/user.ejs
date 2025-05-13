@@ -1,0 +1,7 @@
+<li class="mb-3">
+    <%= user.name %> (<%= user.user_type %>)
+    <form method="POST" action="/admin/update/<%= user._id %>" class="d-inline me-1">
+        <button name="role" value="admin" type="submit" class="btn btn-danger btn-sm">Promote</button>
+        <button name="role" value="user" type="submit" class="btn btn-success btn-sm">Demote</button>
+    </form>
+</li>

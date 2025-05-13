@@ -1,0 +1,21 @@
+<%- include("templates/header") %>
+
+<!-- <%= title %> -->
+<div class="container d-flex justify-content-center">
+    <form action='/loginSubmit' method='post' class="w-100" style="max-width: 400px;">
+        <h2 class="mb-4 text-center"><%= title %></h2>
+        <div class="mb-3">
+            <input name='email' type='text' placeholder='Email Address' class="form-control">
+            <input name='password' type='password' placeholder='Password' class="form-control">
+        </div>
+
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" value="true" id="rememberMe" name="rememberMe">
+            <label class="form-check-label" for="rememberMe">Remember me</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Submit</button>
+    </form>
+</div>
+
+<%- include("templates/footer") %>

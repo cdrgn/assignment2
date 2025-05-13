@@ -1,0 +1,14 @@
+<%- include("templates/header") %>
+
+<div class="container d-flex">
+    <div class="w-100" style="max-width: 400px;">
+        <h2 class="mb-4"><%= title %></h2>
+        <ul class="list-unstyled">
+            <% for(let i=0; i < users.length; i++) { %>
+                <%- include("templates/user", { user: users[i] }) %>
+            <% } %>
+        </ul>
+    </div>
+</div>
+
+<%- include("templates/footer") %>

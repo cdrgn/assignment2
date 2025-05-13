@@ -1,0 +1,16 @@
+<%- include("templates/header") %>
+
+<!-- <%= title %> -->
+ <div class="container d-flex justify-content-center">
+    <form action='/signupSubmit' method='post' class="w-100" style="max-width: 400px;">
+        <h2 class="mb-4 text-center"><%= title %></h2>
+        <div class="mb-3">
+            <input name='name' type='text' placeholder='Name' class="form-control">
+            <input name='email' type='email' placeholder='Email address' class="form-control">
+            <input name='password' type='password' placeholder='Password' class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Submit</button>
+    </form>
+ </div>
+
+<%- include("templates/footer") %>

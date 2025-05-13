@@ -1,0 +1,24 @@
+<%- include("templates/header") %>
+
+<div class="container d-flex justify-content-center">
+    <div class="w-100" style="max-width: 400px;">
+        <h2 class="mb-4 text-center"><%= title %></h2>
+        <button id="signup" class="btn btn-outline-primary w-100 me-2">Sign up</button>
+        <button id="login" class="btn btn-outline-primary w-100 me-2">Log in</button>
+    </div>  
+</div>
+
+<script>
+    document.getElementById("signup")
+        .addEventListener("click", () => {
+            window.location.href = "/signup"
+    });
+
+    document.getElementById("login")
+        .addEventListener("click", () => {
+            window.location.href = "/login"
+    });
+</script>
+
+
+<%- include("templates/footer") %>

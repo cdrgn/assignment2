@@ -1,5 +1,4 @@
 
-// require("./utils.js");
 
 require('dotenv').config();
 const express = require('express');
@@ -16,6 +15,8 @@ const Joi = require("joi");
 
 const expireTime = 1 * 60 * 60 * 1000; //expires after 1 hr  (hours * minutes * seconds * millis)
 
+const { ObjectId } = require('mongodb');
+
 /* secret information section */
 const mongodb_host = process.env.MONGODB_HOST;
 const mongodb_user = process.env.MONGODB_USER;
@@ -26,10 +27,11 @@ const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
 const node_session_secret = process.env.NODE_SESSION_SECRET;
 /* END secret section */
 
-// var {database} = include('databaseConnection');
-var {database} = require('./databaseConnection'); 
+var { database } = require('./databaseConnection'); 
 
 const userCollection = database.db(mongodb_database).collection('users');
+
+app.set('view engine', 'ejs');
 
 app.use(express.urlencoded({extended: false}));
 
@@ -48,46 +50,29 @@ app.use(session({
 }
 ));
 
-app.get('/', (req,res) => {
-    if (req.session.authenticated) {
-        res.send(`
-            <body>
-                <p>Hello, ${req.session.name}!</p>
-                <button id="members">Go to Members Area</button><br>
-                <button id="logout">Logout</button>
-            </body>
-            <script>
-                document.getElementById("members")
-                    .addEventListener("click", () => {
-                        window.location.href = "/members"
-                });
+function sessionValidation(req,res,next) {
+	if (req.session.authenticated) {
+		return next();
+	} else {
+		return res.render('index', { title: "Please Sign Up or Log In" });
+	}
+}
 
-                document.getElementById("logout")
-                    .addEventListener("click", () => {
-                        window.location.href = "/logout"
-                });
-            </script>    
-        `)
-    } else {
-        res.send(`
-            <body>
-                <button id="signup">Sign up</button><br>
-                <button id="login">Log in</button>
-            </body>
-            <script>
-                document.getElementById("signup")
-                    .addEventListener("click", () => {
-                        window.location.href = "/signup"
-                });
-
-                document.getElementById("login")
-                    .addEventListener("click", () => {
-                        window.location.href = "/login"
-                });
-            </script>
-        `);
+function adminAuthorization(req,res,next) {
+    if (req.session.user_type !== 'admin') {
+        res.status(403);
+        return res.render("error", { title: "No Admin Privileges", errorMsg: "Status Code: 403. Not Authorized.", redirect: "/" });
     }
+    else {
+		next();
+    }
+}
+
+app.get('/', sessionValidation, (req,res) => {
+    res.redirect('/members');
 });
+
+/*
 
 app.get('/nosql-injection', async (req,res) => {
 	var username = req.query.user;
@@ -119,60 +104,15 @@ app.get('/nosql-injection', async (req,res) => {
     res.send(`<h1>Hello ${username}</h1>`);
 });
 
-// app.get('/about', (req,res) => {
-//     var color = req.query.color;
+*/
 
-//     res.send("<h1 style='color:"+color+";'>Patrick Guichon</h1>");
-// });
-
-// app.get('/contact', (req,res) => {
-//     var missingEmail = req.query.missing;
-//     var html = `
-//         email address:
-//         <form action='/submitEmail' method='post'>
-//             <input name='email' type='text' placeholder='email'>
-//             <button>Submit</button>
-//         </form>
-//     `;
-//     if (missingEmail) {
-//         html += "<br> email is required";
-//     }
-//     res.send(html);
-// });
-
-// app.post('/submitEmail', (req,res) => {
-//     var email = req.body.email;
-//     if (!email) {
-//         res.redirect('/contact?missing=1');
-//     }
-//     else {
-//         res.send("Thanks for subscribing with your email: "+email);
-//     }
-// });
 
 app.get('/signup', (req,res) => {    
-    var html = `
-    create user
-    <form action='/signupSubmit' method='post'>
-    <input name='name' type='text' placeholder='name'><br>
-    <input name='email' type='email' placeholder='email'><br>
-    <input name='password' type='password' placeholder='password'><br>
-    <button>Submit</button>
-    </form>
-    `;
-    res.send(html);
+    res.render("signup", { title: "Sign Up" });
 });
 
 app.get('/login', (req,res) => {
-    var html = `
-    log in
-    <form action='/loginSubmit' method='post'>
-    <input name='email' type='text' placeholder='email'>
-    <input name='password' type='password' placeholder='password'>
-    <button>Submit</button>
-    </form>
-    `;
-    res.send(html);
+    res.render("login", { title: "Log In"});
 });
 
 app.post('/signupSubmit', async (req,res) => {
@@ -197,20 +137,18 @@ app.post('/signupSubmit', async (req,res) => {
         const message = `${missingFields.join(', ')} required.`;
         const formatMessage = message[0].toUpperCase() + message.slice(1);
 
-        return res.send(`
-            <p>${formatMessage}</p>
-            <a href="/signup">Try again</a>
-        `);
+        return res.render("error", { title: "Sign Up Failed", errorMsg: formatMessage, redirect: "/signup" });
     }
 
     var hashedPassword = await bcrypt.hash(password, saltRounds);
 	
-    await userCollection.insertOne({name: name, email: email, password: hashedPassword});
+    await userCollection.insertOne({ name: name, email: email, password: hashedPassword, user_type: 'user' });
 	console.log("Inserted user");
     req.session.authenticated = true; 
     req.session.name = name; 
     req.session.email = email; 
 	req.session.cookie.maxAge = expireTime;
+	req.session.user_type = 'user';
 
     res.redirect('/');
 });
@@ -223,21 +161,15 @@ app.post('/loginSubmit', async (req,res) => {
 	const validationResult = schema.validate(email);
 	if (validationResult.error != null) {
         console.log(validationResult.error);
-        return res.send(`
-            <p>Invalid email/password combination.</p>
-            <a href="/login">Try again</a>
-        `);
+        return res.render("error", { title: "Login Failed", errorMsg: "Invalid email format.", redirect: "/login" });
 	}
 
-    const result = await userCollection.find({email: email}).project({email: 1, password: 1, _id: 1, name: 1}).toArray();
+    const result = await userCollection.find({email: email}).project({ email: 1, password: 1, _id: 1, name: 1, user_type: 1 }).toArray();
 
 	// console.log(result);
 	if (result.length != 1) {
 		console.log("user not found");
-		return res.send(`
-            <p>Invalid email/password combination.</p>
-            <a href="/login">Try again</a>
-        `);
+		return res.render("error", { title: "Login Failed", errorMsg: "Email not registered.", redirect: "/login" });	
 	}
 	if (await bcrypt.compare(password, result[0].password)) {
 		console.log("correct password");
@@ -245,45 +177,18 @@ app.post('/loginSubmit', async (req,res) => {
         req.session.name = result[0].name;
 		req.session.email = email;
 		req.session.cookie.maxAge = expireTime;
+		req.session.user_type = result[0].user_type;
 
         res.redirect('/');
 		return;
 	}
 	else {
 		console.log("incorrect password");
-		return res.send(`
-            <p>Invalid email/password combination.</p>
-            <a href="/login">Try again</a>
-        `);
-	}
+			return res.render("error", { title: "Login Failed", errorMsg: "Invalid email/password combination.", redirect: "/login" });	}
 });
 
-app.get('/members', (req,res) => {
-    if (req.session.authenticated) {
-        return res.send(`
-            <body>
-                <h1>Hello, ${req.session.name}.</h1>
-                <div id="randomImg"></div>
-                <button id="signout">Sign out</button>
-            </body>
-            <script>
-                document.getElementById("signout")
-                    .addEventListener("click", () => {
-                        window.location.href = "/logout"
-                });
-    
-                const id = Math.floor(Math.random() * 3) + 1;
-    
-                fetch('/img/' + id)
-                    .then(r => r.text())
-                    .then(html => {
-                        document.getElementById('randomImg').innerHTML = html;
-                });
-            </script>            
-        `);
-    } else {
-        return res.redirect("/");
-    }
+app.get('/members', sessionValidation, async (req,res) => {
+    res.render("members", { title: "Members", name: req.session.name });
 });
 
 app.get('/logout', (req,res) => {
@@ -291,31 +196,52 @@ app.get('/logout', (req,res) => {
     res.redirect('/');
 });
 
+app.get('/admin', sessionValidation, adminAuthorization, async (req,res) => {
+	const result = await userCollection.find().project({ name: 1, _id: 1, user_type: 1 }).toArray();
+	res.render("admin", { title: "Users", users: result });
+});
 
+app.post('/admin/update/:id/', sessionValidation, adminAuthorization, async(req,res) => {
+	const userId = req.params.id;
+	const role = req.body.role;
+
+	if(role !== 'admin' && role !== 'user') {
+		res.status(400);
+		return res.render("error", { title: "Update User Type Failed", errorMsg: "Status Code: 400. Invalid user type.", redirect: "/admin" });
+	}
+
+	await userCollection.updateOne({_id: new ObjectId(userId)}, {$set: {user_type: role}});
+	console.log("succesfully updated role");
+	res.redirect('/admin');
+});
+
+
+/* 
 app.get('/img/:id', (req,res) => {
 
-    var image = req.params.id;
+    var imageId = req.params.id;
 
-    if (image == 1) {
+    if (imageId == 1) {
         res.send("<img src='/aussie.jpg' style='width:250px;'>");
     }
-    else if (image == 2) {
+    else if (imageId == 2) {
         res.send("<img src='/daschund.jpg' style='width:250px;'>");
     }
-    else if (image == 3) {
+    else if (imageId == 3) {
         res.send("<img src='/husky.jpg' style='width:250px;'>");
     }
     else {
-        res.send("Invalid img id: " + image);
+        res.send("Invalid img id: " + imageId);
     }
 });
+*/
 
 
 app.use(express.static(__dirname + "/public"));
 
 app.get(/.*/, (req,res) => {    
 	res.status(404);
-	res.send("Page not found - 404");
+	res.render("404");
 })
 
 app.listen(port, () => {
