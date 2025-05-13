@@ -72,8 +72,6 @@ app.get('/', sessionValidation, (req,res) => {
     res.redirect('/members');
 });
 
-/*
-
 app.get('/nosql-injection', async (req,res) => {
 	var username = req.query.user;
 
@@ -103,9 +101,6 @@ app.get('/nosql-injection', async (req,res) => {
 
     res.send(`<h1>Hello ${username}</h1>`);
 });
-
-*/
-
 
 app.get('/signup', (req,res) => {    
     res.render("signup", { title: "Sign Up" });
@@ -179,8 +174,8 @@ app.post('/loginSubmit', async (req,res) => {
 		req.session.cookie.maxAge = expireTime;
 		req.session.user_type = result[0].user_type;
 
-        res.redirect('/');
-		return;
+        return res.redirect('/');
+		
 	}
 	else {
 		console.log("incorrect password");
